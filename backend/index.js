@@ -6,6 +6,7 @@ const authRoutes = require("./routes/authRoutes")
 const app = express()
 const dbConnection = require("./config/dbConnection")
 const userRoutes = require("./routes/userRoute")
+const postRoutes = require("./routes/postsRoutes")
 
 cloudinary.config({
     cloud_name : process.env.CLOUDINARY_CLOUD_NAME,
@@ -21,6 +22,7 @@ const PORT = process.env.PORT
 dbConnection()
 app.use("/auth" , authRoutes)
 app.use("/user" , userRoutes)
+app.use("/post",  postRoutes)
 app.listen(PORT , () => {
     console.log("Server Started On Port" , PORT)
 })
