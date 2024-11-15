@@ -7,25 +7,54 @@ import { MdOutlineMail } from "react-icons/md";
 import { FaUser } from "react-icons/fa";
 import { MdPassword } from "react-icons/md";
 import { MdDriveFileRenameOutline } from "react-icons/md";
+import toast from "react-hot-toast";
+import axios from "axios"
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const SignupPage = () => {
 	const [formData, setFormData] = useState({
 		email: "",
 		username: "",
-		fullName: "",
 		password: "",
 	});
+	const queryClient = useQueryClient()
+
+	const {mutate , isError , isPending , error} = useMutation({
+		mutationFn : async ({email , username , password}) => {
+			try
+			{
+				const {data} = await axios.post("http://localhost:5400/auth/signup" , {
+					email , 
+					username ,
+					password
+				})
+				console.log(data)
+				return data
+			}
+			catch (error) {
+				const errorMessage = error.response?.data?.message || "Failed to create account";
+				toast.error(errorMessage)
+				throw new Error(errorMessage)
+
+			}
+		},
+		onSuccess: () => {
+			toast.success("Account created successfully");
+			queryClient.invalidateQueries({ queryKey: ["authUser"] });
+			setFormData({ email: "", username: "", fullName: "", password: "" }); 
+		},
+	})
 
 	const handleSubmit = (e) => {
 		e.preventDefault();
-		console.log(formData);
+		mutate(formData);
 	};
 
 	const handleInputChange = (e) => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
 	};
 
-	const isError = false;
+	
 
 	return (
 		<div className='max-w-screen-xl mx-auto flex h-screen px-10'>
@@ -71,7 +100,7 @@ const SignupPage = () => {
 							value={formData.password}
 						/>
 					</label>
-					<button className='btn rounded-full btn-primary text-white'>Sign up</button>
+					<button className='btn rounded-full btn-primary text-white'>{isPending ? "Loading..." : "Sign-up"}</button>
 					{isError && <p className='text-red-500'>Something went wrong</p>}
 				</form>
 				<div className='flex flex-col lg:w-2/3 gap-2 mt-4'>
