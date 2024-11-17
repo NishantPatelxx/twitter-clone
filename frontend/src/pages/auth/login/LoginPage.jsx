@@ -1,98 +1,107 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
-import XSvg from "../../../components/svgs/Xsvg";
+import XSvg from "../../../components/svgs/X";
 
-import { MdOutlineMail, MdPassword } from "react-icons/md";
+import { MdOutlineMail } from "react-icons/md";
+import { MdPassword } from "react-icons/md";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import toast from "react-hot-toast";
 
 const LoginPage = () => {
-	const [formData, setFormData] = useState({
-		username: "",
-		password: "",
-	});
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+  });
+  const queryClient = useQueryClient();
 
-	const queryClient = useQueryClient();
+  const {
+    mutate: loginMutation,
+    isPending,
+    isError,
+    error,
+  } = useMutation({
+    mutationFn: async ({ username, password }) => {
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username, password }),
+        });
 
-	const { mutate, isLoading, isError, error } = useMutation({
-		mutationFn: async ({ username, password }) => {
-			try {
-				const { data } = await axios.post("http://localhost:5400/auth/login", {
-					username,
-					password,
-				});
-				console.log(data);
-				return data;
-			} catch (error) {
-				const errorMessage = error.response?.data?.message || "Failed to log in";
-				toast.error(errorMessage); // Display error toast
-				throw new Error(errorMessage);
-			}
-		},
-		onSuccess: () => {
-			toast.success("Logged in successfully"); // Display success toast
-			queryClient.invalidateQueries(["authUser"]);
-			setFormData({ username: "", password: "" }); // Clear form
-		},
-	});
+        const data = await res.json();
 
-	const handleSubmit = (e) => {
-		e.preventDefault();
-		mutate(formData);
-	};
+        if (!res.ok) {
+          throw new Error(data.error || "Something went wrong");
+        }
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      // refetch the authUser
+      queryClient.invalidateQueries({ queryKey: ["authUser"] });
+    },
+  });
 
-	const handleInputChange = (e) => {
-		setFormData({ ...formData, [e.target.name]: e.target.value });
-	};
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    loginMutation(formData);
+  };
 
-	return (
-		<div className='max-w-screen-xl mx-auto flex h-screen'>
-			<div className='flex-1 hidden lg:flex items-center justify-center'>
-				<XSvg className='lg:w-2/3 fill-white' />
-			</div>
-			<div className='flex-1 flex flex-col justify-center items-center'>
-				<form className='flex gap-4 flex-col' onSubmit={handleSubmit}>
-					<XSvg className='w-24 lg:hidden fill-white' />
-					<h1 className='text-4xl font-extrabold text-white'>{"Let's"} go.</h1>
-					<label className='input input-bordered rounded flex items-center gap-2'>
-						<MdOutlineMail />
-						<input
-							type='text'
-							className='grow'
-							placeholder='Username'
-							name='username'
-							onChange={handleInputChange}
-							value={formData.username}
-						/>
-					</label>
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-					<label className='input input-bordered rounded flex items-center gap-2'>
-						<MdPassword />
-						<input
-							type='password'
-							className='grow'
-							placeholder='Password'
-							name='password'
-							onChange={handleInputChange}
-							value={formData.password}
-						/>
-					</label>
-					<button className='btn rounded-full btn-primary text-white'>
-						{isLoading ? "Loading..." : "Log In"}
-					</button>
-					{isError && <p className='text-red-500'>{error.message}</p>}
-				</form>
-				<div className='flex flex-col gap-2 mt-4'>
-					<p className='text-white text-lg'>{"Don't"} have an account?</p>
-					<Link to='/signup'>
-						<button className='btn rounded-full btn-primary text-white btn-outline w-full'>Sign up</button>
-					</Link>
-				</div>
-			</div>
-		</div>
-	);
+  return (
+    <div className="max-w-screen-xl mx-auto flex h-screen">
+      <div className="flex-1 hidden lg:flex items-center  justify-center">
+        <XSvg className="lg:w-2/3 fill-white" />
+      </div>
+      <div className="flex-1 flex flex-col justify-center items-center">
+        <form className="flex gap-4 flex-col" onSubmit={handleSubmit}>
+          <XSvg className="w-24 lg:hidden fill-white" />
+          <h1 className="text-4xl font-extrabold text-white">{"Let's"} go.</h1>
+          <label className="input input-bordered rounded flex items-center gap-2">
+            <MdOutlineMail />
+            <input
+              type="text"
+              className="grow"
+              placeholder="username"
+              name="username"
+              onChange={handleInputChange}
+              value={formData.username}
+            />
+          </label>
+
+          <label className="input input-bordered rounded flex items-center gap-2">
+            <MdPassword />
+            <input
+              type="password"
+              className="grow"
+              placeholder="Password"
+              name="password"
+              onChange={handleInputChange}
+              value={formData.password}
+            />
+          </label>
+          <button className="btn rounded-full btn-primary text-white">
+            {isPending ? "Loading..." : "Login"}
+          </button>
+          {isError && <p className="text-red-500">{error.message}</p>}
+        </form>
+        <div className="flex flex-col gap-2 mt-4">
+          <p className="text-white text-lg">{"Don't"} have an account?</p>
+          <Link to="/signup">
+            <button className="btn rounded-full btn-primary text-white btn-outline w-full">
+              Sign up
+            </button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 };
-
 export default LoginPage;
